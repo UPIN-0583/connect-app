@@ -1,0 +1,19 @@
+{
+  "name": "connect-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Connect App Monorepo",
+  "scripts": {
+    "dev:web": "pnpm --filter @connect-app/web dev",
+    "dev:server": "pnpm --filter @connect-app/server dev",
+    "dev": "pnpm -r --parallel run dev",
+    "build": "pnpm -r run build",
+    "lint": "pnpm -r run lint",
+    "test": "pnpm -r run test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@12.3.4",
+  "type": "module"
+}
