@@ -9,7 +9,11 @@
     "dev": "pnpm -r --parallel run dev",
     "build": "pnpm -r run build",
     "lint": "pnpm -r run lint",
-    "test": "pnpm -r run test"
+    "test": "pnpm -r run test",
+    "db:migrate": "pnpm --filter @connect-app/server db:migrate",
+    "db:generate": "pnpm --filter @connect-app/server db:generate",
+    "db:studio": "pnpm --filter @connect-app/server db:studio",
+    "db:push": "pnpm --filter @connect-app/server db:push"
   },
   "keywords": [],
   "author": "",

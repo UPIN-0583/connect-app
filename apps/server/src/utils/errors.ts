@@ -6,7 +6,12 @@ export type ErrorCode =
   | "INVALID_REFRESH_TOKEN"
   | "USER_NOT_FOUND"
   | "VALIDATION_ERROR"
-  | "INTERNAL_SERVER_ERROR";
+  | "INTERNAL_SERVER_ERROR"
+  | "CONVERSATION_NOT_FOUND"       // Không tìm thấy phòng chat
+  | "NOT_CONVERSATION_MEMBER"      // Không phải thành viên của phòng (403)
+  | "CANNOT_CHAT_WITH_SELF"        // Không thể tự tạo chat với chính mình
+  | "MESSAGE_NOT_FOUND"            // Không tìm thấy tin nhắn
+  | "MESSAGE_NOT_OWNER";           // Cố tình sửa/xóa tin nhắn của người khác (403)
 
 export class AppError extends Error {
   public readonly statusCode: number;
