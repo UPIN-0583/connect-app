@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { AppError } from "../utils/errors.js";
+import { ZodError } from "zod";
 
 export function errorHandler(
   err: Error,
@@ -13,6 +14,16 @@ export function errorHandler(
       error: {
         code: err.code,
         message: err.message,
+      },
+    });
+  }
+
+  if (err instanceof ZodError) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: "VALIDATION_ERROR",
+        message: err.issues[0]?.message || "Dữ liệu không hợp lệ" ,
       },
     });
   }

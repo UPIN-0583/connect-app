@@ -7,6 +7,9 @@ import cookieParser from "cookie-parser";
 import type { User } from "@connect-app/types";
 import authRoutes from "./routes/auth.routes.js";
 import userRoutes from "./routes/user.routes.js"; 
+import conversationRoutes from "./routes/conversation.routes.js";
+import messageRoutes from "./routes/message.routes.js";
+
 import { errorHandler } from "./middlewares/error.middleware.js";
 
 dotenv.config();
@@ -35,6 +38,8 @@ app.get("/api/health", (_req: Request, res: Response) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/conversations", conversationRoutes);
+app.use("/api/messages", messageRoutes);
 
 // Error Handler BẮT BUỘC đặt ở cuối cùng của file
 app.use(errorHandler);
