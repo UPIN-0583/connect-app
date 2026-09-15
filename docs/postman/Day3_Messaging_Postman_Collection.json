@@ -1,0 +1,550 @@
+{
+  "info": {
+    "name": "Connect App - Day 3 Messaging Flow",
+    "description": "Bộ kịch bản kiểm thử toàn diện cho Day 3: Quản lý cuộc trò chuyện 1-1 và Tin nhắn (REST API)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "tokenA",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userA_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenB",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userB_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenC",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "conversationId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "messageId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Khởi tạo & Đăng nhập (Setup Users & Login)",
+      "item": [
+        {
+          "name": "1.1 Đăng ký User A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('userA_id', json.data.id);",
+                  "        console.log('✅ Đã lưu userA_id:', json.data.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"usera_day3@example.com\",\n  \"username\": \"usera_day3\",\n  \"password\": \"Password123@\",\n  \"displayName\": \"User A Day 3\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "1.2 Đăng nhập User A (Lấy Token A)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.accessToken) {",
+                  "        pm.collectionVariables.set('tokenA', json.data.accessToken);",
+                  "        if (json.data.user && json.data.user.id) {",
+                  "            pm.collectionVariables.set('userA_id', json.data.user.id);",
+                  "        }",
+                  "        console.log('✅ Đã lưu tokenA');",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"usera_day3@example.com\",\n  \"password\": \"Password123@\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "1.3 Đăng ký User B",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('userB_id', json.data.id);",
+                  "        console.log('✅ Đã lưu userB_id:', json.data.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"userb_day3@example.com\",\n  \"username\": \"userb_day3\",\n  \"password\": \"Password123@\",\n  \"displayName\": \"User B Day 3\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "1.4 Đăng nhập User B (Lấy Token B)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.accessToken) {",
+                  "        pm.collectionVariables.set('tokenB', json.data.accessToken);",
+                  "        if (json.data.user && json.data.user.id) {",
+                  "            pm.collectionVariables.set('userB_id', json.data.user.id);",
+                  "        }",
+                  "        console.log('✅ Đã lưu tokenB');",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"userb_day3@example.com\",\n  \"password\": \"Password123@\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "1.5 Đăng ký User C (Người lạ)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"userc_day3@example.com\",\n  \"username\": \"userc_day3\",\n  \"password\": \"Password123@\",\n  \"displayName\": \"User C Stranger\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "1.6 Đăng nhập User C (Lấy Token C)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.accessToken) {",
+                  "        pm.collectionVariables.set('tokenC', json.data.accessToken);",
+                  "        console.log('✅ Đã lưu tokenC');",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"userc_day3@example.com\",\n  \"password\": \"Password123@\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Quản lý Conversation",
+      "item": [
+        {
+          "name": "2.1 User A tự tạo chat với chính mình (Kỳ vọng: 400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenA}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userA_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/conversations/direct",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "conversations", "direct"]
+            }
+          }
+        },
+        {
+          "name": "2.2 User A tạo phòng chat 1-1 với User B (Kỳ vọng: 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('conversationId', json.data.id);",
+                  "        console.log('✅ Đã lưu conversationId:', json.data.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenA}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userB_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/conversations/direct",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "conversations", "direct"]
+            }
+          }
+        },
+        {
+          "name": "2.3 Kiểm tra chống trùng phòng (Gửi lại tạo lần 2)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenA}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userB_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/conversations/direct",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "conversations", "direct"]
+            }
+          }
+        },
+        {
+          "name": "2.4 User A lấy danh sách cuộc trò chuyện",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenA}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/conversations",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "conversations"]
+            }
+          }
+        },
+        {
+          "name": "2.5 User A lấy chi tiết phòng chat",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenA}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/conversations/{{conversationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "conversations", "{{conversationId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Tin nhắn (Messaging)",
+      "item": [
+        {
+          "name": "3.1 User A gửi tin nhắn 1 (Kỳ vọng: 201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('messageId', json.data.id);",
+                  "        console.log('✅ Đã lưu messageId:', json.data.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenA}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Chào User B, đây là tin nhắn đầu tiên của Day 3!\",\n  \"type\": \"TEXT\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/conversations/{{conversationId}}/messages",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "conversations", "{{conversationId}}", "messages"]
+            }
+          }
+        },
+        {
+          "name": "3.2 User A gửi tin nhắn 2",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenA}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Bạn có nhận được tin nhắn này không?\",\n  \"type\": \"TEXT\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/conversations/{{conversationId}}/messages",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "conversations", "{{conversationId}}", "messages"]
+            }
+          }
+        },
+        {
+          "name": "3.3 User B đọc danh sách tin nhắn (Kỳ vọng: 200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenB}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/conversations/{{conversationId}}/messages?limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "conversations", "{{conversationId}}", "messages"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "3.4 User C (Người lạ) đọc tin nhắn (Kỳ vọng: 403 Forbidden)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenC}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/conversations/{{conversationId}}/messages",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "conversations", "{{conversationId}}", "messages"]
+            }
+          }
+        },
+        {
+          "name": "3.5 User B cố tình xóa tin nhắn của A (Kỳ vọng: 403)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenB}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/messages/{{messageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "messages", "{{messageId}}"]
+            }
+          }
+        },
+        {
+          "name": "3.6 User A xóa tin nhắn của chính mình (Kỳ vọng: 200 Soft Delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenA}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/messages/{{messageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "messages", "{{messageId}}"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
