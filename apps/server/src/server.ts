@@ -11,11 +11,16 @@ import conversationRoutes from "./routes/conversation.routes.js";
 import messageRoutes from "./routes/message.routes.js";
 
 import { errorHandler } from "./middlewares/error.middleware.js";
+import { createServer } from "http";
+import { initializeSocket } from "./socket/index.js";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const httpServer = createServer(app);
+
+initializeSocket(httpServer);
 
 app.use(cors({
   origin: process.env.CLIENT_URL || "http://localhost:3000",
@@ -43,8 +48,12 @@ app.use("/api/messages", messageRoutes);
 
 // Error Handler BẮT BUỘC đặt ở cuối cùng của file
 app.use(errorHandler);
-app.listen(PORT, () => {
+// app.listen(PORT, () => {
+//   console.log(`Server is running at http://localhost:${PORT}`);
+// });
+
+httpServer.listen(PORT, () => {
   console.log(`Server is running at http://localhost:${PORT}`);
 });
 
-export { app};
+export { app, httpServer};

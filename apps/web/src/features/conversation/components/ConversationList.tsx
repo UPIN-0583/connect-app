@@ -1,17 +1,23 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { getConversationsApi } from "../services/conversation.api";
 
 interface ConversationListProps {
-  user: any; // Chứa thông tin Profile truyền từ page.tsx xuống
+  user: any; 
   onLogout: () => void;
+  onSelectConversation: (id: string) => void;
 }
 
-export default function ConversationList({ user, onLogout }: ConversationListProps) {
-  // Dữ liệu giả (Mock data) để test UI
-  const mockConversations = [
-    { id: "1", name: "Alice", lastMessage: "Hello there!", time: "10:30 AM", isActive: true },
-    { id: "2", name: "Team Kết Nối", lastMessage: "Sếp: Ai code tính năng này?", time: "Hôm qua", isActive: false },
-    { id: "3", name: "Bob", lastMessage: "Đi nhậu không?", time: "T2", isActive: false },
-  ];
+export default function ConversationList({ user, onLogout, onSelectConversation }: ConversationListProps) {
+  const [conversations, setConversations] = useState<any[]>([]);
+  useEffect(() => {
+    // Khi load giao diện, lấy danh sách chat thật từ Database!
+    const token = localStorage.getItem("accessToken");
+    if (token) {
+      getConversationsApi(token)
+        .then(data => setConversations(data))
+        .catch(err => console.error("Lỗi tải chat:", err));
+    }
+  }, []);
 
   return (
     <div className="w-80 border-r border-gray-200 bg-white flex flex-col h-full shrink-0">
@@ -22,27 +28,28 @@ export default function ConversationList({ user, onLogout }: ConversationListPro
 
       {/* Danh sách Chat */}
       <div className="flex-1 overflow-y-auto">
-        {mockConversations.map((conv) => (
-          <div 
-            key={conv.id} 
-            className={`flex items-center gap-3 p-3 cursor-pointer transition ${conv.isActive ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
-          >
-            {/* Avatar chữ cái đầu */}
-            <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold shrink-0">
-              {conv.name.charAt(0)}
-            </div>
-            {/* Thông tin */}
-            <div className="flex-1 min-w-0">
-              <div className="flex justify-between items-baseline mb-0.5">
-                <h3 className="font-semibold text-gray-900 truncate">{conv.name}</h3>
-                <span className="text-xs text-gray-500 shrink-0">{conv.time}</span>
+                {conversations.length === 0 ? (
+          <div className="p-8 text-center text-sm text-gray-500">Bạn chưa có cuộc trò chuyện nào.</div>
+        ) : (
+          conversations.map((conv) => (
+            <div 
+              key={conv.id} 
+              // THÊM DÒNG NÀY VÀO ĐỂ BẤM ĐƯỢC NHÉ:
+              onClick={() => onSelectConversation(conv.id)} 
+              className="flex items-center gap-3 p-3 cursor-pointer transition hover:bg-gray-50 border-b border-gray-50"
+            >
+              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold shrink-0">
+                {conv.name ? conv.name.charAt(0) : (conv.type === "DIRECT" ? "1" : "G")}
               </div>
-              <p className={`text-sm truncate ${conv.isActive ? 'text-blue-600 font-medium' : 'text-gray-500'}`}>
-                {conv.lastMessage}
-              </p>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-gray-900 truncate">
+                  {conv.name ? conv.name : (conv.type === "DIRECT" ? "Chat 1-1" : "Nhóm")}
+                </h3>
+                <p className="text-xs truncate text-gray-400">ID: {conv.id.substring(0,8)}...</p>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
       {/* Phần Footer: Profile & Đăng xuất */}

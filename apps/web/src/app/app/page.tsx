@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getMeApi, logoutApi } from "@/features/auth/services/auth.api";
+import { socketService } from "@/lib/socket";
 
 import ConversationList from "@/features/conversation/components/ConversationList";
 import ChatWindow from "@/features/chat/components/ChatWindow";
@@ -11,6 +12,7 @@ export default function AppPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchProfile() {
@@ -22,6 +24,7 @@ export default function AppPage() {
       try {
         const profile = await getMeApi(token);
         setUser(profile);
+        socketService.connect(token); //Kết nối socket sau khi lấy profile thành công
       } catch {
         localStorage.removeItem("accessToken");
         router.push("/login");
@@ -30,6 +33,10 @@ export default function AppPage() {
       }
     }
     fetchProfile();
+
+    return () => {
+      socketService.disconnect();
+    };
   }, [router]);
 
   const handleLogout = async () => {
@@ -37,6 +44,7 @@ export default function AppPage() {
       await logoutApi();
     } finally {
       localStorage.removeItem("accessToken");
+      socketService.disconnect(); // Ngắt kết nối Socket khi logout
       router.push("/login");
     }
   };
@@ -56,11 +64,13 @@ export default function AppPage() {
     <div className="h-screen w-screen overflow-hidden flex bg-white font-sans">
       
       {/* Cột trái: Danh sách cuộc trò chuyện */}
-      <ConversationList user={user} onLogout={handleLogout} />
+      <ConversationList user={user} onLogout={handleLogout} onSelectConversation={(id) => setActiveConversationId(id)} />
 
       {/* Cột phải: Khung chat hiện tại */}
-      <ChatWindow />
-      
+      <ChatWindow conversationId={activeConversationId}
+        user={user}
+      />
+
     </div>
   );
 }
