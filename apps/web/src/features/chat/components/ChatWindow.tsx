@@ -8,6 +8,8 @@ interface ChatWindowProps {
 }
 
 export default function ChatWindow({ conversationId, user }: ChatWindowProps) {
+  const [isTyping, setIsTyping] = useState(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null); 
   const [messages, setMessages] = useState<any[]>([]);
   const [inputValue, setInputValue] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null); // Dùng để cuộn xuống cuối màn hình
@@ -108,10 +110,32 @@ export default function ChatWindow({ conversationId, user }: ChatWindowProps) {
       {/* Ô Nhập tin nhắn */}
       <div className="p-4 bg-white border-t border-gray-200 shrink-0">
         <form onSubmit={handleSend} className="flex items-center gap-2 max-w-4xl mx-auto">
-          <input 
+                    <input 
             type="text" 
             value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+            onChange={(e) => {
+              setInputValue(e.target.value);
+              const socket = socketService.getSocket();
+              
+              if (socket && conversationId) {
+                // 1. Nếu chưa báo đang gõ, thì phát sự kiện Đang gõ
+                if (!isTyping) {
+                  setIsTyping(true);
+                  socket.emit("typing:start", { conversationId });
+                }
+                
+                // 2. Xoá đồng hồ đếm ngược cũ nếu vẫn đang gõ liên tục
+                if (typingTimeoutRef.current) {
+                  clearTimeout(typingTimeoutRef.current);
+                }
+
+                // 3. Đặt đồng hồ mới: Hễ ngưng gõ phím 1.5 giây thì tự báo là Dừng gõ
+                typingTimeoutRef.current = setTimeout(() => {
+                  setIsTyping(false);
+                  socket.emit("typing:stop", { conversationId });
+                }, 1500);
+              }
+            }}
             placeholder="Nhập tin nhắn... (Nhấn Enter để gửi)" 
             className="flex-1 bg-gray-100 border-transparent focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-full px-4 py-2.5 text-sm outline-none transition"
           />
