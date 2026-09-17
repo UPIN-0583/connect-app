@@ -103,3 +103,19 @@ export async function updateConversationTimestamp(id: string) {
     data: { updatedAt: new Date() }
   });
 }
+
+// Cập nhật ID tin nhắn cuối cùng mà user đã đọc
+export async function updateLastReadMessage(conversationId: string, userId: string, messageId: string) {
+  return prisma.conversationMember.update({
+    where: {
+      // Khóa đôi (Composite key) được Prisma tự tạo dựa trên @@unique
+      conversationId_userId: { 
+        conversationId,
+        userId
+      }
+    },
+    data: {
+      lastReadMessageId: messageId
+    }
+  });
+}

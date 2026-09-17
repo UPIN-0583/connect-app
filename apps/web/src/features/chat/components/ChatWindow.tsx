@@ -1,149 +1,134 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { socketService } from "@/lib/socket";
-import { getMessagesApi } from "../services/message.api";
+import { getMessagesApi, deleteMessageApi } from "../services/message.api";
+import MessageList from "./MessageList";
+import MessageInput from "./MessageInput";
 
 interface ChatWindowProps {
-  conversationId: string | null;
+  conversation: any | null;
   user: any;
 }
 
-export default function ChatWindow({ conversationId, user }: ChatWindowProps) {
-  const [isTyping, setIsTyping] = useState(false);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null); 
+export default function ChatWindow({ conversation, user }: ChatWindowProps) {
+  const conversationId = conversation?.id || null;
   const [messages, setMessages] = useState<any[]>([]);
-  const [inputValue, setInputValue] = useState("");
-  const scrollRef = useRef<HTMLDivElement>(null); // Dùng để cuộn xuống cuối màn hình
+  const [replyingTo, setReplyingTo] = useState<any>(null);
+  const [editingMessage, setEditingMessage] = useState<any>(null);
+  const [typists, setTypists] = useState<Set<string>>(new Set());
 
-  // [A] CHẠY MỖI KHI BẠN BẤM VÀO 1 ĐOẠN CHAT MỚI
   useEffect(() => {
     if (!conversationId) return;
     const token = localStorage.getItem("accessToken");
     if (!token) return;
 
-    // 1. Tải tin nhắn cũ (REST API)
-    getMessagesApi(token, conversationId)
-      .then((res) => {
-        if (res && res.messages) {
-          setMessages(res.messages.reverse());
-        }
-      })
-      .catch(err => console.error("Lỗi tải tin nhắn cũ:", err));
+    const fetchMessages = () => {
+      getMessagesApi(token, conversationId)
+        .then((res) => {
+          if (res && res.messages) setMessages(res.messages.reverse());
+        })
+        .catch((err) => console.error("Lỗi tải tin nhắn:", err));
+    };
 
-    // 2. Tham gia phòng Socket & Lắng nghe tin nhắn mới
+    fetchMessages();
+
     const socket = socketService.getSocket();
     if (socket) {
       socket.emit("conversation:join", { conversationId });
 
       const handleNewMessage = (msg: any) => {
-        // Nếu tin nhắn mới đúng là của phòng đang mở thì hiển thị
-        if (msg.conversationId === conversationId) {
-          setMessages((prev) => [...prev, msg]);
+        if (msg.conversationId === conversationId) setMessages((prev) => [...prev, msg]);
+      };
+      const handleUpdatedMessage = (updatedMsg: any) => {
+        if (updatedMsg.conversationId === conversationId) {
+          setMessages((prev) => prev.map(m => m.id === updatedMsg.id ? updatedMsg : m));
         }
       };
+      const handleDeletedMessage = (deletedMsg: any) => {
+        if (deletedMsg.conversationId === conversationId) {
+          setMessages((prev) => prev.map(m => m.id === deletedMsg.id ? deletedMsg : m));
+        }
+      };
+      const handleTypingStart = (data: { userId: string, conversationId: string }) => {
+        if (data.conversationId === conversationId && data.userId !== user?.id) {
+          setTypists(prev => new Set([...prev, data.userId]));
+        }
+      };
+      const handleTypingStop = (data: { userId: string, conversationId: string }) => {
+        if (data.conversationId === conversationId && data.userId !== user?.id) {
+          setTypists(prev => {
+            const next = new Set(prev);
+            next.delete(data.userId);
+            return next;
+          });
+        }
+      };
+      const handleReconnect = () => fetchMessages();
 
       socket.on("message:new", handleNewMessage);
+      socket.on("message:updated", handleUpdatedMessage);
+      socket.on("message:deleted", handleDeletedMessage);
+      socket.on("typing:start", handleTypingStart);
+      socket.on("typing:stop", handleTypingStop);
+      socket.on("connect", handleReconnect);
 
-      // Cleanup khi người dùng chuyển phòng khác
       return () => {
         socket.off("message:new", handleNewMessage);
+        socket.off("message:updated", handleUpdatedMessage);
+        socket.off("message:deleted", handleDeletedMessage);
+        socket.off("typing:start", handleTypingStart);
+        socket.off("typing:stop", handleTypingStop);
+        socket.off("connect", handleReconnect);
       };
     }
   }, [conversationId]);
 
-  // [B] Cứ có tin nhắn mới là tự động cuộn xuống cuối cùng
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
 
-  // [C] HÀM GỬI TIN NHẮN (SOCKET)
-  const handleSend = (e: React.FormEvent) => {
-    e.preventDefault(); // Ngăn trình duyệt load lại trang khi gõ Enter
-    if (!inputValue.trim() || !conversationId) return;
-
-    const socket = socketService.getSocket();
-    if (socket) {
-      socket.emit("message:send", {
-        conversationId,
-        content: inputValue.trim(),
-      });
-      setInputValue(""); // Gửi xong xoá trắng ô nhập
-    }
+  const handleDelete = async (msgId: string) => {
+    const token = localStorage.getItem("accessToken");
+    if (token) await deleteMessageApi(token, msgId);
   };
 
-  // NẾU CHƯA CHỌN PHÒNG CHAT
   if (!conversationId) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 h-full min-w-0">
-        <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mb-4 text-3xl">💬</div>
-        <p className="text-gray-500 font-medium">Hãy chọn một đoạn chat bên trái để bắt đầu</p>
+      <div className="flex-1 bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-400 text-lg font-medium">Chọn một phòng chat để bắt đầu</p>
       </div>
     );
   }
 
-  // NẾU ĐÃ CHỌN
   return (
-    <div className="flex-1 flex flex-col bg-gray-50 h-full min-w-0">
-      {/* Header */}
-      <div className="h-[73px] px-6 border-b border-gray-200 bg-white flex items-center shadow-sm shrink-0">
-        <h2 className="text-lg font-bold text-gray-800">Phòng Chat Realtime</h2>
+    <div className="flex-1 flex flex-col h-full bg-white relative">
+      <div className="p-4 border-b border-gray-200 bg-white font-bold text-gray-800 shadow-sm z-10 flex justify-between items-center">
+        {(() => {
+          let name = "\u0110ang t\u1EA3i...";
+          if (conversation) {
+            if (conversation.type === "DIRECT") {
+              const otherMember = conversation.members?.find((m: any) => m.userId !== user?.id);
+              name = otherMember?.user?.displayName || "User";
+            } else {
+              name = conversation.name || "Nh\u00F3m";
+            }
+          }
+          return <span>{name}</span>;
+        })()}
       </div>
 
-      {/* Khu vực hiển thị tin nhắn */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4">
-        {messages.map((msg) => {
-          const isMine = msg.senderId === user?.id; // Xác định ai là người gửi
-          return (
-            <div key={msg.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[70%] rounded-2xl px-4 py-2 ${
-                  isMine ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white text-gray-800 border border-gray-200 rounded-bl-none shadow-sm'
-                }`}
-              >
-                <p className="text-sm">{msg.content}</p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <MessageList 
+        messages={messages} 
+        user={user} 
+        typists={typists}
+        onReply={setReplyingTo} 
+        onEdit={setEditingMessage} 
+        onDelete={handleDelete} 
+      />
 
-      {/* Ô Nhập tin nhắn */}
-      <div className="p-4 bg-white border-t border-gray-200 shrink-0">
-        <form onSubmit={handleSend} className="flex items-center gap-2 max-w-4xl mx-auto">
-                    <input 
-            type="text" 
-            value={inputValue}
-            onChange={(e) => {
-              setInputValue(e.target.value);
-              const socket = socketService.getSocket();
-              
-              if (socket && conversationId) {
-                // 1. Nếu chưa báo đang gõ, thì phát sự kiện Đang gõ
-                if (!isTyping) {
-                  setIsTyping(true);
-                  socket.emit("typing:start", { conversationId });
-                }
-                
-                // 2. Xoá đồng hồ đếm ngược cũ nếu vẫn đang gõ liên tục
-                if (typingTimeoutRef.current) {
-                  clearTimeout(typingTimeoutRef.current);
-                }
-
-                // 3. Đặt đồng hồ mới: Hễ ngưng gõ phím 1.5 giây thì tự báo là Dừng gõ
-                typingTimeoutRef.current = setTimeout(() => {
-                  setIsTyping(false);
-                  socket.emit("typing:stop", { conversationId });
-                }, 1500);
-              }
-            }}
-            placeholder="Nhập tin nhắn... (Nhấn Enter để gửi)" 
-            className="flex-1 bg-gray-100 border-transparent focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-full px-4 py-2.5 text-sm outline-none transition"
-          />
-          <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-2.5 transition flex items-center justify-center">
-             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-          </button>
-        </form>
-      </div>
+      <MessageInput 
+        conversationId={conversationId} 
+        replyingTo={replyingTo} 
+        setReplyingTo={setReplyingTo}
+        editingMessage={editingMessage}
+        setEditingMessage={setEditingMessage}
+      />
     </div>
   );
 }

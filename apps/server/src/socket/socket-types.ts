@@ -14,12 +14,16 @@ export interface AuthSocket extends Socket {
 // Các sự kiện Server GỬI VỀ Client
 export interface ServerToClientEvents {
   "presence:online": (data: { userId: string }) => void;
+  "presence:sync": (data: { userIds: string[] }) => void;
   "presence:offline": (data: { userId: string }) => void;
   error: (err: { message: string; code?: string }) => void;
 
   "message:new": (message: Message) => void;
+  "message:updated": (message: Message) => void;
+  "message:deleted": (message: Message) => void;
   "typing:start": (data: { userId: string; conversationId: string }) => void;
   "typing:stop": (data: { userId: string; conversationId: string }) => void;
+  "message:read_updated": (data: { conversationId: string; userId: string; messageId: string }) => void;
 }
 
 // Các sự kiện Client GỬI LÊN Server
@@ -28,4 +32,5 @@ export interface ClientToServerEvents {
   "message:send": (data: { conversationId: string; content: string }) => void;
   "typing:start": (data: { conversationId: string }) => void;
   "typing:stop": (data: { conversationId: string }) => void;
+  "message:read": (data: { conversationId: string; messageId: string }) => void;
 }

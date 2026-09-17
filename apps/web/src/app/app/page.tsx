@@ -12,7 +12,7 @@ export default function AppPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [activeConversation, setActiveConversation] = useState<any>(null);
 
   useEffect(() => {
     async function fetchProfile() {
@@ -64,10 +64,10 @@ export default function AppPage() {
     <div className="h-screen w-screen overflow-hidden flex bg-white font-sans">
       
       {/* Cột trái: Danh sách cuộc trò chuyện */}
-      <ConversationList user={user} onLogout={handleLogout} onSelectConversation={(id) => setActiveConversationId(id)} />
+      <ConversationList user={user} onLogout={handleLogout} onSelectConversation={(conv) => setActiveConversation(conv)} />
 
       {/* Cột phải: Khung chat hiện tại */}
-      <ChatWindow conversationId={activeConversationId}
+      <ChatWindow conversation={activeConversation}
         user={user}
       />
 

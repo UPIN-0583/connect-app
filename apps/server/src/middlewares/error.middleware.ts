@@ -34,7 +34,7 @@ export function errorHandler(
     success: false,
     error: {
       code: "INTERNAL_SERVER_ERROR",
-      message: "Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.",
+      message: err.message || "Internal Server Error",
     },
   });
 }

@@ -11,7 +11,9 @@ export type ErrorCode =
   | "NOT_CONVERSATION_MEMBER"      // Không phải thành viên của phòng (403)
   | "CANNOT_CHAT_WITH_SELF"        // Không thể tự tạo chat với chính mình
   | "MESSAGE_NOT_FOUND"            // Không tìm thấy tin nhắn
-  | "MESSAGE_NOT_OWNER";           // Cố tình sửa/xóa tin nhắn của người khác (403)
+  | "MESSAGE_NOT_OWNER"            // Cố tình sửa/xóa tin nhắn của người khác (403)
+  | "BAD_REQUEST"                  // Yêu cầu không hợp lệ (ví dụ: trả lời tin nhắn không tồn tại)
+  | "FORBIDDEN";                  // Yêu cầu bị từ chối (ví dụ: trả lời tin nhắn khác phòng)
 
 export class AppError extends Error {
   public readonly statusCode: number;

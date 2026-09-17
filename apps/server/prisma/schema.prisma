@@ -103,10 +103,24 @@ model Message {
   conversationId String       @map("conversation_id")
   senderId       String       @map("sender_id")
   type           MessageType  @default(TEXT)
-  content        String
+
+  // --- THÊM PHẦN MEDIA VÀ NỘI DUNG ---
+  content        String?      // Đổi thành tuỳ chọn (?) vì gửi ảnh/file có thể không kèm text
+  mediaUrl       String?      @map("media_url")
+  mediaPublicId  String?      @map("media_public_id")
+  fileName       String?      @map("file_name")
+  fileSize       Int?         @map("file_size")
+  mimeType       String?      @map("mime_type")
+  
+  // --- THÊM PHẦN REPLY (TRẢ LỜI) ---
+  replyToId      String?      @map("reply_to_id")
+  replyTo        Message?     @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies        Message[]    @relation("MessageReplies")
+
   deletedAt      DateTime?    @map("deleted_at")
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
+
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
 

@@ -66,4 +66,22 @@ export const registerMessageHandlers = (socket: AuthSocket) => {
        conversationId: data.conversationId 
      });
   });
+
+  // TASK 9: READ RECEIPT (BÁO ĐÃ XEM)
+  socket.on("message:read", async (data: { conversationId: string; messageId: string }) => {
+    try {
+       // 1. Cập nhật vào DB
+       await conversationRepo.updateLastReadMessage(data.conversationId, user.id, data.messageId);
+       
+       // 2. Báo cho tất cả người trong phòng biết user này đã đọc tới message này
+       const roomName = `conversation:${data.conversationId}`;
+       getIO().to(roomName).emit("message:read_updated", {
+         conversationId: data.conversationId,
+         userId: user.id,
+         messageId: data.messageId
+       });
+    } catch (err) {
+       console.error("[Socket] Lỗi cập nhật Read Receipt:", err);
+    }
+  });
 };

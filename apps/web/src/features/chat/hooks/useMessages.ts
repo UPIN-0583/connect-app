@@ -31,9 +31,9 @@ export function useMessages(conversationId: string | null, accessToken: string |
   }, [fetchMessages]);
 
   // Hàm gửi tin nhắn (lạc quan cập nhật vào state giao diện)
-  const sendMessage = async (dto: SendMessageDto) => {
+  const sendMessage = async (formData: FormData) => {
     if (!conversationId || !accessToken) return;
-    const newMessage = await sendMessageApi(accessToken, conversationId, dto);
+    const newMessage = await sendMessageApi(accessToken, conversationId, formData);
     setMessages((prev) => [newMessage, ...prev]);
     return newMessage;
   };

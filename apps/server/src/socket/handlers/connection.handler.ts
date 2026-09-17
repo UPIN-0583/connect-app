@@ -26,6 +26,9 @@ export const handleConnection = (socket: AuthSocket) => {
     console.log(`[Presence] 🟢 User ${user.id} is now ONLINE`);
   }
 
+  const onlineUsers = Array.from(userSockets.keys());
+  socket.emit("presence:sync", { userIds: onlineUsers });
+
   registerMessageHandlers(socket);
 
   // 2. Xử lý khi tắt tab / rớt mạng
