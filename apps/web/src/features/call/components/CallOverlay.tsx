@@ -34,7 +34,7 @@ const OutgoingCall = () => {
 };
 
 const ActiveCall = () => {
-  const { session, endCall, toggleMute } = useCallContext();
+  const { session, endCall, toggleMute, isMuted } = useCallContext();
   const [duration, setDuration] = React.useState(0);
 
   React.useEffect(() => {
@@ -60,8 +60,8 @@ const ActiveCall = () => {
         <div className="text-xs text-gray-400">Đang trong cuộc gọi</div>
       </div>
       <div className="flex gap-2 ml-4">
-        <button onClick={toggleMute} className="p-3 bg-gray-700 hover:bg-gray-600 rounded-full">
-           Mute
+        <button onClick={toggleMute} className={`p-3 rounded-full font-medium transition-colors ${isMuted ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}>
+           {isMuted ? 'Unmute' : 'Mute'}
         </button>
         <button onClick={endCall} className="p-3 bg-red-500 hover:bg-red-600 rounded-full text-white">
            End

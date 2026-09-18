@@ -1,19 +1,14 @@
-import React, { createContext, useContext, useEffect, useRef } from "react";
+import React, { createContext, useContext, useEffect } from "react";
 import { useCall } from "../hooks/useCall";
 import { socketService } from "@/lib/socket";
-import { WebRTCService } from "@/lib/webrtc";
 import * as callSignaling from "../services/call.service";
+import { getMicrophoneErrorMsg } from "@/lib/webrtc";
 
 const CallContext = createContext<ReturnType<typeof useCall> | null>(null);
 
 export const CallProvider = ({ children }: { children: React.ReactNode }) => {
   const callParams = useCall();
-  
-  // Since we use closures in Socket.io event listeners, we need refs for latest state
-  const sessionRef = useRef(callParams.session);
-  useEffect(() => { sessionRef.current = callParams.session; }, [callParams.session]);
-  
-  const webrtc = useRef(new WebRTCService());
+  const { sessionRef, updateSession, cleanupCall, webrtc, endCall } = callParams;
 
   useEffect(() => {
     const socket = socketService.getSocket();
@@ -29,7 +24,6 @@ export const CallProvider = ({ children }: { children: React.ReactNode }) => {
         }
       },
       onRemoteTrack: (stream) => {
-        // We can expose this stream to a global audio element
         const audioEl = document.getElementById("remote-audio") as HTMLAudioElement;
         if (audioEl) {
           audioEl.srcObject = stream;
@@ -37,21 +31,21 @@ export const CallProvider = ({ children }: { children: React.ReactNode }) => {
         }
       },
       onConnectionStateChange: (state) => {
-        if (state === "connected") {
-          callParams.setSession(prev => prev ? { ...prev, status: "CONNECTED", startTime: Date.now() } : null);
+        const s = sessionRef.current;
+        if (state === "connected" && s) {
+          updateSession({ ...s, status: "CONNECTED", startTime: Date.now() });
         } else if (state === "disconnected" || state === "failed" || state === "closed") {
-          callParams.endCall();
+          endCall();
         }
       }
     });
 
     socket.on("call:request", (data) => {
-      // Only accept new call if IDLE
       if (!sessionRef.current) {
-        callParams.setSession({
+        updateSession({
           callId: data.callId,
           callerId: data.callerId,
-          receiverId: socket.id || "", // Current user is receiver
+          receiverId: socket.id || "", 
           status: "RINGING",
           type: "VOICE"
         });
@@ -61,34 +55,42 @@ export const CallProvider = ({ children }: { children: React.ReactNode }) => {
     socket.on("call:accept", async (data) => {
       const s = sessionRef.current;
       if (s && s.callId === data.callId) {
-        callParams.setSession(prev => prev ? { ...prev, status: "CONNECTING" } : null);
-        await webrtc.current.initialize();
-        const offer = await webrtc.current.createOffer();
-        callSignaling.sendWebRTCOffer(s.callId, s.receiverId, offer);
+        // We are the caller, receiver just accepted
+        // Caller's mic is ALREADY initialized during startCall!
+        updateSession({ ...s, status: "CONNECTING" });
+        try {
+          const offer = await webrtc.current.createOffer();
+          callSignaling.sendWebRTCOffer(s.callId, s.receiverId, offer);
+        } catch (err) {
+          alert("Loi tao ket noi Webrtc.");
+          endCall();
+        }
       }
     });
 
     socket.on("call:reject", () => {
-      callParams.setSession(null);
-      webrtc.current.cleanup();
+      cleanupCall();
     });
 
     socket.on("call:cancel", () => {
-      callParams.setSession(null);
-      webrtc.current.cleanup();
+      cleanupCall();
     });
 
     socket.on("call:end", () => {
-      callParams.setSession(null);
-      webrtc.current.cleanup();
+      cleanupCall();
     });
 
     socket.on("webrtc:offer", async (data) => {
       const s = sessionRef.current;
       if (s && s.callId === data.callId) {
-        await webrtc.current.initialize();
-        const answer = await webrtc.current.handleOfferAndCreateAnswer(data.offer);
-        callSignaling.sendWebRTCAnswer(s.callId, s.callerId, answer);
+        try {
+          // Receiver's mic is ALREADY initialized during acceptCall!
+          const answer = await webrtc.current.handleOfferAndCreateAnswer(data.offer);
+          callSignaling.sendWebRTCAnswer(s.callId, s.callerId, answer);
+        } catch(err) {
+          alert("Loi xu ly ket noi Webrtc.");
+          endCall();
+        }
       }
     });
 
@@ -116,23 +118,11 @@ export const CallProvider = ({ children }: { children: React.ReactNode }) => {
       socket.off("webrtc:answer");
       socket.off("webrtc:ice-candidate");
     };
-  }, []);
+  }, []); // Only runs once on mount
 
   return (
-    <CallContext.Provider value={{
-      ...callParams,
-      toggleMute: () => {
-        const muted = webrtc.current.toggleMute();
-        // Trigger re-render by calling something on callParams if needed, 
-        // or just rely on the internal state in useCall if we wire it up.
-      },
-      endCall: () => {
-        callParams.endCall();
-        webrtc.current.cleanup();
-      }
-    }}>
+    <CallContext.Provider value={callParams}>
       {children}
-      {/* Hidden audio element for remote stream playback */}
       <audio id="remote-audio" autoPlay />
     </CallContext.Provider>
   );

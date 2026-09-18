@@ -1,49 +1,89 @@
 import { useState, useRef, useEffect } from "react";
 import { socketService } from "@/lib/socket";
-import { WebRTCService } from "@/lib/webrtc";
-import { CallSession, CallStatus } from "../types/call.types";
+import { WebRTCService, getMicrophoneErrorMsg } from "@/lib/webrtc";
+import { CallSession } from "../types/call.types";
 import * as callSignaling from "../services/call.service";
 
 export const useCall = () => {
   const [session, setSession] = useState<CallSession | null>(null);
+  const sessionRef = useRef<CallSession | null>(null);
   const [isMuted, setIsMuted] = useState(false);
-  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
-  
   const webrtc = useRef<WebRTCService>(new WebRTCService());
-  const timerInterval = useRef<NodeJS.Timeout | null>(null);
 
-  // --- ACTIONS ---
+  const updateSession = (nextSession: CallSession | null) => {
+    sessionRef.current = nextSession;
+    setSession(nextSession);
+  };
 
-  const startCall = (conversationId: string, receiverId: string) => {
-    const callId = "call_" + Date.now();
-    setSession({ callId, callerId: (socketService.getSocket()?.id || ""), receiverId, status: "CALLING", type: "VOICE" });
-    callSignaling.sendCallRequest(callId, conversationId, receiverId);
+  const cleanupCall = () => {
+    webrtc.current.cleanup();
+    updateSession(null);
+    setIsMuted(false);
+  };
+
+  const startCall = async (conversationId: string, receiverId: string) => {
+    try {
+      // 1. Xin quyền Microphone trước tiên
+      await webrtc.current.initialize();
+      
+      // 2. Microphone OK -> Tiến hành gọi
+      const callId = "call_" + Date.now();
+      const meId = socketService.getSocket()?.id || "";
+      
+      updateSession({ callId, callerId: meId, receiverId, status: "CALLING", type: "VOICE" });
+      callSignaling.sendCallRequest(callId, conversationId, receiverId);
+      
+    } catch (error) {
+      alert(getMicrophoneErrorMsg(error));
+      cleanupCall(); // Dọn dẹp nếu lỡ có lỗi gì đó
+    }
   };
 
   const acceptCall = async () => {
-    if (!session) return;
-    setSession(prev => prev ? { ...prev, status: "CONNECTING" } : null);
-    callSignaling.sendCallAccept(session.callId, session.callerId);
+    const currentSession = sessionRef.current;
+    if (!currentSession) return;
     
-    // We are the receiver, wait for webrtc:offer from caller. The stream initialization happens when offer arrives or right now.
+    // Đang đổ chuông, chuyển sang Connecting ngay để khóa UI
+    updateSession({ ...currentSession, status: "CONNECTING" });
+
+    try {
+      // 1. Xin quyền Microphone trước khi gửi webrtc:offer (Nếu là receiver, ta chờ offer, nhưng vẫn phải init mic trước)
+      await webrtc.current.initialize();
+      
+      // 2. Báo cho Caller biết là ta đã Accept
+      callSignaling.sendCallAccept(currentSession.callId, currentSession.callerId);
+      
+      // Chờ socket.on("webrtc:offer") ở Context để handleOfferAndCreateAnswer...
+    } catch (error) {
+      alert(getMicrophoneErrorMsg(error));
+      // Báo cho bên kia biết là call bị end (vì ta không thể tham gia)
+      callSignaling.sendCallEnd(currentSession.callId, currentSession.callerId);
+      cleanupCall();
+    }
   };
 
   const rejectCall = () => {
-    if (!session) return;
-    callSignaling.sendCallReject(session.callId, session.callerId);
+    const currentSession = sessionRef.current;
+    if (!currentSession) return;
+    callSignaling.sendCallReject(currentSession.callId, currentSession.callerId);
     cleanupCall();
   };
 
   const cancelCall = () => {
-    if (!session) return;
-    callSignaling.sendCallCancel(session.callId, session.receiverId);
+    const currentSession = sessionRef.current;
+    if (!currentSession) return;
+    callSignaling.sendCallCancel(currentSession.callId, currentSession.receiverId);
     cleanupCall();
   };
 
   const endCall = () => {
-    if (!session) return;
-    const targetId = session.callerId === (socketService.getSocket()?.id || "") ? session.receiverId : session.callerId;
-    callSignaling.sendCallEnd(session.callId, targetId);
+    const currentSession = sessionRef.current;
+    if (!currentSession) return;
+    
+    const meId = socketService.getSocket()?.id || "";
+    const targetId = currentSession.callerId === meId ? currentSession.receiverId : currentSession.callerId;
+    
+    callSignaling.sendCallEnd(currentSession.callId, targetId);
     cleanupCall();
   };
 
@@ -52,62 +92,18 @@ export const useCall = () => {
     setIsMuted(muted);
   };
 
-  const cleanupCall = () => {
-    webrtc.current.cleanup();
-    setSession(null);
-    setRemoteStream(null);
-    setIsMuted(false);
-    if (timerInterval.current) clearInterval(timerInterval.current);
-  };
-
-  // --- SOCKET LISTENERS ---
-  
-  useEffect(() => {
-    const socket = socketService.getSocket();
-    if (!socket) return;
-
-    // 1. Incoming Call Request
-    socket.on("call:request", (data) => {
-      setSession({
-        callId: data.callId,
-        callerId: data.callerId,
-        receiverId: socket.id || "",
-        status: "RINGING",
-        type: "VOICE"
-      });
-    });
-
-    // 2. Call Accepted (Caller receives this)
-    socket.on("call:accept", async (data) => {
-      setSession(prev => prev ? { ...prev, status: "CONNECTING" } : null);
-      
-      // Initialize WebRTC as Caller
-      await webrtc.current.initialize();
-      const offer = await webrtc.current.createOffer();
-      
-      const targetId = session?.receiverId || ""; // Need state sync, but we use data.targetId if available, wait, session state might be stale in this closure. 
-      // Better to rely on functional state updates or refs. We'll refine this.
-    });
-
-    // We will complete the socket listeners in the full Context implementation to avoid closure stale state.
-    
-    return () => {
-      socket.off("call:request");
-      socket.off("call:accept");
-      // ...
-    };
-  }, []);
-
   return {
     session,
+    sessionRef,
+    updateSession,
     isMuted,
-    remoteStream,
     startCall,
     acceptCall,
     rejectCall,
     cancelCall,
     endCall,
     toggleMute,
-    setSession // for internal context updates
+    cleanupCall,
+    webrtc
   };
 };

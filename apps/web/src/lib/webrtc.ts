@@ -1,3 +1,19 @@
+
+export const getMicrophoneErrorMsg = (error: any): string => {
+  if (error instanceof DOMException) {
+    switch (error.name) {
+      case "NotAllowedError":
+        return "Ban da tu choi quyen truy cap microphone.";
+      case "NotFoundError":
+        return "Khong tim thay thiet bi microphone.";
+      case "NotReadableError":
+        return "Microphone dang bi ung dung khac su dung.";
+      default:
+        return `Loi microphone: ${error.message}`;
+    }
+  }
+  return "Khong the truy cap microphone. Vui long kiem tra lai thiet bi.";
+};
 export class WebRTCService {
   private peerConnection: RTCPeerConnection | null = null;
   private localStream: MediaStream | null = null;

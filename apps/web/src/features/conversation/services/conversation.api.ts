@@ -1,3 +1,4 @@
+import { fetchWithAuth } from "@/lib/api";
 import type { Conversation, CreateDirectConversationDto } from "../types/conversation.types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";

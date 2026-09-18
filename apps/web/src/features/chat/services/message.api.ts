@@ -1,3 +1,4 @@
+import { fetchWithAuth, xhrWithAuth } from "@/lib/api";
 import type { Message, SendMessageDto, GetMessagesResponse } from "../types/chat.types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
@@ -14,12 +15,9 @@ export async function getMessagesApi(
     query.set("cursor", cursor);
   }
 
-  const res = await fetch(`${API_URL}/conversations/${conversationId}/messages?${query.toString()}`, {
+  const res = await fetchWithAuth(`${API_URL}/conversations/${conversationId}/messages?${query.toString()}`, {
     method: "GET",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json"
-    }
+    headers: { "Content-Type": "application/json" }
   });
 
   const json = await res.json();
@@ -38,52 +36,16 @@ export function sendMessageApi(
   formData: FormData,
   onProgress?: (percent: number) => void
 ): Promise<any> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    
-    xhr.open("POST", `${API_URL}/conversations/${conversationId}/messages`);
-    xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
-
-    xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable && onProgress) {
-        const percent = Math.round((event.loaded / event.total) * 100);
-        onProgress(percent);
-      }
-    };
-
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const json = JSON.parse(xhr.responseText);
-          resolve(json.data || json);
-        } catch (e) {
-          resolve(xhr.responseText);
-        }
-      } else {
-        try {
-          const json = JSON.parse(xhr.responseText);
-          reject(new Error(json.error?.message || "Lỗi khi gửi tin nhắn"));
-        } catch (e) {
-          reject(new Error("Lỗi khi gửi tin nhắn"));
-        }
-      }
-    };
-
-    xhr.onerror = () => reject(new Error("Lỗi kết nối mạng"));
-    xhr.send(formData);
-  });
+  return xhrWithAuth(`${API_URL}/conversations/${conversationId}/messages`, formData, onProgress);
 }
 
 export async function deleteMessageApi(
   accessToken: string,
   messageId: string
 ): Promise<Message> {
-  const res = await fetch(`${API_URL}/messages/${messageId}`, {
+  const res = await fetchWithAuth(`${API_URL}/messages/${messageId}`, {
     method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json"
-    }
+    headers: { "Content-Type": "application/json" }
   });
 
   const json = await res.json();
@@ -93,12 +55,9 @@ export async function deleteMessageApi(
   return json.data;
 }
 export async function editMessageApi(accessToken: string, messageId: string, content: string): Promise<Message> {
-  const res = await fetch(`${API_URL}/messages/${messageId}`, {
+  const res = await fetchWithAuth(`${API_URL}/messages/${messageId}`, {
     method: 'PUT',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json'
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ content })
   });
   const json = await res.json();
