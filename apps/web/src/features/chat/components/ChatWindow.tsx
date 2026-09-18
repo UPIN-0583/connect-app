@@ -3,6 +3,7 @@ import { socketService } from "@/lib/socket";
 import { getMessagesApi, deleteMessageApi } from "../services/message.api";
 import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
+import { CallButton } from "../../call/components/CallOverlay";
 
 interface ChatWindowProps {
   conversation: any | null;
@@ -100,16 +101,24 @@ export default function ChatWindow({ conversation, user }: ChatWindowProps) {
     <div className="flex-1 flex flex-col h-full bg-white relative">
       <div className="p-4 border-b border-gray-200 bg-white font-bold text-gray-800 shadow-sm z-10 flex justify-between items-center">
         {(() => {
-          let name = "\u0110ang t\u1EA3i...";
+          let name = "Đang tải...";
+          let currentOtherMember = null;
           if (conversation) {
             if (conversation.type === "DIRECT") {
-              const otherMember = conversation.members?.find((m: any) => m.userId !== user?.id);
-              name = otherMember?.user?.displayName || "User";
+              currentOtherMember = conversation.members?.find((m: any) => m.userId !== user?.id);
+              name = currentOtherMember?.user?.displayName || "User";
             } else {
-              name = conversation.name || "Nh\u00F3m";
+              name = conversation.name || "Nhóm";
             }
           }
-          return <span>{name}</span>;
+          return (
+            <div className="flex items-center justify-between w-full">
+              <span>{name}</span>
+              {conversation && conversation.type === "DIRECT" && currentOtherMember && (
+                <CallButton conversationId={conversation.id} receiverId={currentOtherMember.userId} />
+              )}
+            </div>
+          );
         })()}
       </div>
 

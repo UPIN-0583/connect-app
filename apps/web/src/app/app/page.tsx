@@ -7,6 +7,8 @@ import { socketService } from "@/lib/socket";
 
 import ConversationList from "@/features/conversation/components/ConversationList";
 import ChatWindow from "@/features/chat/components/ChatWindow";
+import { CallProvider } from "@/features/call/context/CallContext";
+import { CallOverlay } from "@/features/call/components/CallOverlay";
 
 export default function AppPage() {
   const router = useRouter();
@@ -24,7 +26,7 @@ export default function AppPage() {
       try {
         const profile = await getMeApi(token);
         setUser(profile);
-        socketService.connect(token); //Kết nối socket sau khi lấy profile thành công
+        socketService.connect(token);
       } catch {
         localStorage.removeItem("accessToken");
         router.push("/login");
@@ -44,7 +46,7 @@ export default function AppPage() {
       await logoutApi();
     } finally {
       localStorage.removeItem("accessToken");
-      socketService.disconnect(); // Ngắt kết nối Socket khi logout
+      socketService.disconnect();
       router.push("/login");
     }
   };
@@ -60,17 +62,12 @@ export default function AppPage() {
   if (!user) return null;
 
   return (
-    // Container bao phủ toàn màn hình, không cho cuộn ngang dọc
-    <div className="h-screen w-screen overflow-hidden flex bg-white font-sans">
-      
-      {/* Cột trái: Danh sách cuộc trò chuyện */}
-      <ConversationList user={user} onLogout={handleLogout} onSelectConversation={(conv) => setActiveConversation(conv)} />
-
-      {/* Cột phải: Khung chat hiện tại */}
-      <ChatWindow conversation={activeConversation}
-        user={user}
-      />
-
-    </div>
+    <CallProvider>
+      <div className="h-screen w-screen overflow-hidden flex bg-white font-sans">
+        <ConversationList user={user} onLogout={handleLogout} onSelectConversation={(conv) => setActiveConversation(conv)} />
+        <ChatWindow conversation={activeConversation} user={user} />
+      </div>
+      <CallOverlay />
+    </CallProvider>
   );
 }

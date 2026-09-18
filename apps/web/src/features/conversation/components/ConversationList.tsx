@@ -17,7 +17,7 @@ export default function ConversationList({ user, onLogout, onSelectConversation 
     if (token) {
       getConversationsApi(token)
         .then(data => setConversations(data))
-        .catch(err => console.error("L\u1ED7i t\u1EA3i chat:", err));
+        .catch(err => console.error("Lỗi tải chat:", err));
     }
   }, []);
 
@@ -37,12 +37,12 @@ export default function ConversationList({ user, onLogout, onSelectConversation 
   return (
     <div className="w-80 border-r border-gray-200 bg-white flex flex-col h-full shrink-0">
       <div className="p-4 border-b border-gray-100 font-bold text-xl text-gray-800">
-        {"\u0110o\u1EA1n chat"}
+        {"Đoạn chat"}
       </div>
 
       <div className="flex-1 overflow-y-auto">
           {conversations.length === 0 ? (
-          <div className="p-8 text-center text-sm text-gray-500">{"B\u1EA1n ch\u01B0a c\u00F3 cu\u1ED9c tr\u00F2 chuy\u1EC7n n\u00E0o."}</div>
+          <div className="p-8 text-center text-sm text-gray-500">{"Bạn chưa có cuộc trò chuyện nào."}</div>
         ) : (
            conversations.map((conv) => {
           const otherMember = conv.members?.find((m: any) => m.userId !== user?.id);
@@ -52,7 +52,7 @@ export default function ConversationList({ user, onLogout, onSelectConversation 
           if (!displayName) {
              displayName = conv.type === "DIRECT" 
                ? (otherMember?.user?.displayName || "User")
-               : "Nh\u00F3m";
+               : "Nhóm";
           }
 
           let avatarChar = displayName.charAt(0).toUpperCase();
@@ -74,7 +74,7 @@ export default function ConversationList({ user, onLogout, onSelectConversation 
                   {displayName}
                 </h3>
                 <p className={`text-xs truncate ${isOnline ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
-                   {isOnline ? "Tr\u1EF1c tuy\u1EBFn" : (conv.messages?.[0]?.content || "Ngo\u1EA1i tuy\u1EBFn")}
+                   {isOnline ? "Trực tuyến" : (conv.messages?.[0]?.content || "Ngoại tuyến")}
                 </p>
               </div>
             </div>
@@ -89,12 +89,12 @@ export default function ConversationList({ user, onLogout, onSelectConversation 
          </div>
          <div className="flex-1 min-w-0">
             <h4 className="font-semibold text-sm text-gray-800 truncate">{user?.displayName}</h4>
-            <p className="text-xs text-green-600 font-medium">{"Tr\u1EF1c tuy\u1EBFn"}</p>
+            <p className="text-xs text-green-600 font-medium">{"Trực tuyến"}</p>
          </div>
          <button 
            onClick={onLogout}
            className="text-red-500 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition"
-           title="\u0110\u0103ng xu\u1EA5t"
+           title="Đăng xuất"
          >
            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
          </button>
